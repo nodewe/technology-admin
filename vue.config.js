@@ -1,16 +1,30 @@
+const fs = require("fs")
 const path = require("path")
 const webpack = require('webpack')
 
-function resolve(dir) {
-    return path.join(__dirname, dir)
-}
+
+//cesium 配置的代码
+const cesiumSource = 'node_modules/cesium/Source';
+const cesiumWorkers = '../Build/Cesium/Workers';
+const CopyWebpackPlugin = require('copy-webpack-plugin');
+
+// function resolve(dir) {
+//     return path.join(__dirname, dir)
+// }
+// const key = resolve('/ssl/client.key');
+// // const cert = resolve('/ssl/server.key');
+// const cert = resolve('/ssl/client.csr')
+// // const key = resolve('/ssl/server.crt')
+
+// const ca = resolve('/ssl/client.crt')
+// console.log(key,'key')
 module.exports = {
     publicPath: './',
     assetsDir: 'static',
     // build:{},
     lintOnSave: false,
     productionSourceMap: false,
-    css:{
+    css: {
         extract: true,
         sourceMap: false,
         loaderOptions: {
@@ -20,33 +34,56 @@ module.exports = {
         },
         modules: false
     },
-    devServer:{
-        port:8002,
-        open:true,
-        https:false,
+    devServer: {
+        port: 80,
+        open: true,
+        https: false,
         overlay: {
             warnings: true,
             errors: true
         },
         proxy: {
-            '/api': {
-                target: 'http://localhost:3002', // 接口域名
-                ws: true, // 是否启用websockets
-                changeOrigin: true, //开启代理：在本地会创建一个虚拟服务端，然后发送请求的数据，并同时接收请求的数据，这样服务端和服务端进行数据的交互就不会有跨域问题
+            [process.env.VUE_APP_BASE_API]: {
+                target: `http://localhost:8080`,
+                changeOrigin: true,
                 pathRewrite: {
-                    '^/api': '' // 修改路径
+                    ['^' + process.env.VUE_APP_BASE_API]: ''
                 }
             }
         }
     },
     chainWebpack: config => {
         config.resolve.alias
-            .set("@", resolve("./src"))
+            .set("@", resolve("./src"));
+        config.module.set('unknownContextRegExp', /^('|')\.\/.*?\1$/);
+        config.module.set('unknownContextCritical', false);
+        config.amd({
+            toUrlUndefined: false
+        })
     },
     configureWebpack: {
         performance: {
-            hints:false
-        }
+            hints: false
+        },
+        plugins: [
+            // Copy Cesium Assets, Widgets, and Workers to a static directory
+            new CopyWebpackPlugin( [
+                { from: path.join(cesiumSource, cesiumWorkers), to: 'Workers' },
+            ]),
+            new CopyWebpackPlugin( [
+                { from: path.join(cesiumSource, 'Assets'), to: 'Assets' },
+            ]),
+            new CopyWebpackPlugin( [
+                { from: path.join(cesiumSource, 'Widgets'), to: 'Widgets' }
+            ]),
+            new CopyWebpackPlugin( [
+                { from: path.join(cesiumSource, 'ThirdParty'), to: 'ThirdParty/Workers' }
+            ]),
+            new webpack.DefinePlugin({
+                // Define relative base path in cesium for loading assets
+                CESIUM_BASE_URL: JSON.stringify('./')
+            })
+        ],
     },
     // 构建时开启多进程处理 babel 编译
     parallel: require('os').cpus().length > 1,

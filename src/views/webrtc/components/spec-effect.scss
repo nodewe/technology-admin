@@ -1,0 +1,27 @@
+//视频特效
+//无特效
+.none {
+    -webkit-filter: none;
+}
+//模糊
+.blur {
+    -webkit-filter: blur(3px);
+}
+
+//灰度
+.grayscale {
+    -webkit-filter: grayscale(1);
+}
+//反色
+.inver {
+    -webkit-filter: invert(1);
+}
+
+//褐色
+.speia {
+    -webkit-filter: sepia(1);
+}
+//透明度
+.opacity {
+    -webkit-filter: opacity(0.2);
+}

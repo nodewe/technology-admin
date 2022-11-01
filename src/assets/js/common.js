@@ -1,5 +1,5 @@
 import { Message, MessageBox } from 'element-ui'
-import router from '../../router'
+import router from '../../router/router'
 
 const commonFn = {
 	toast (str, type, showClose, onCloseFn) {
@@ -17,13 +17,13 @@ const commonFn = {
 	},
 	// 刷新当前页面
 	shallowRefresh (name) {
-		console.log('shallowRefresh name=' + name)
-		router.replace({
-			path: '/refresh',
-			query: {
-				name: name
-			}
-		})
+		// console.log('shallowRefresh name=' + name)
+		// router.replace({
+		// 	path: '/refresh',
+		// 	query: {
+		// 		name: name
+		// 	}
+		// })
 	},
 	// 弹框
 	msgBox (type, title, message, confirm, cancel) {

@@ -1,5 +1,10 @@
 # front-end
-
+## 简介
+```
+ 里面整合了文件上传 以及大文件切片上传的主要逻辑
+ 视频播放的主要业务需求
+ 3dCesium的案例
+```
 ## Project setup
 ```
 npm install

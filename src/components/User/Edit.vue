@@ -1,14 +1,11 @@
 <template>
   <el-dialog title="新增管理员" :visible.sync="showFlag" custom-class="dialog-small" @close="closeDialog">
     <el-form ref="formData" :model="formData" :rules="formRules" label-width="80px">
-      <el-form-item label="账号" prop="name">
-        <el-input v-model="formData.name" placeholder="请输入管理员账号"></el-input>
+      <el-form-item label="账号" prop="username">
+        <el-input v-model="formData.username" placeholder="请输入管理员账号"></el-input>
       </el-form-item>
       <el-form-item label="密码" prop="password">
         <el-input v-model="formData.password" placeholder="请输入密码"></el-input>
-      </el-form-item>
-      <el-form-item label="邮箱" prop="email">
-        <el-input v-model="formData.email" placeholder="请输入管理员邮箱"></el-input>
       </el-form-item>
       <el-form-item class="dialog-footer" align="center">
         <el-button type="primary" @click="onSave('formData')">保 存</el-button>
@@ -19,48 +16,26 @@
 </template>
 
 <script>
-import { userDetail, userUpdateInfo } from '../../config/interface'
+import {getInfo,updateInfo} from '@/api/user.js'
+import {decrypt,encrypt} from '@/utils/jsencrypt.js'
 export default {
   data () {
-    const validate = (rule, value, callback) => {
-      const reg = /^[0-9a-zA-Z\u4e00-\u9fa5]*$/g
-      if (!value) {
-        callback(new Error('请输入账号'))
-      } else if (value.length < 3 || value.length > 6) {
-        callback(new Error('账号长度需在 3 到 6 个字符'))
-      } else if (!reg.test(value)) {
-        callback(new Error('账号需为字母或数字'))
-      } else {
-        callback()
-      }
-    }
-     const validate1 = (rule, value, callback) => {
-      const reg = /^[0-9a-zA-Z]*$/g
-      if (!value) {
-        callback(new Error('请输入密码'))
-      } else if (!reg.test(value)) {
-        callback(new Error('内容需为字母或数字'))
-      } else {
-        callback()
-      }
-    }
+   
     return {
+      id:'',
       showFlag: false,
       formData: {
-        name: null,
-        password: null,
-        email: null
+        id:'',
+        username: '',
+        password: '',
       },
       formRules: {
-        name: [
-          { validator: validate, trigger: 'blur' }
+        username: [
+          { required:true, trigger: 'blur' }
         ],
         password: [
-          { validator: validate1, trigger: 'blur' }
+          { required:true, trigger: 'blur' }
         ],
-        email: [
-          { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
-        ]
       },
       reqFlag: {
         edit: true
@@ -77,7 +52,6 @@ export default {
       this.$nextTick(() => {
         this.id = id
         this.getUserDetail()
-        console.log('this.id==' + this.id)
         this.changeShowFlag()
       })
     },
@@ -85,45 +59,35 @@ export default {
       this.showFlag = !this.showFlag
     },
     getUserDetail () {
-      const url = userDetail
       let params = {
         id: this.id
       }
-      this.$http(url, params)
-      .then(res => {
-        if (res.code == 1) {
-          let data = res.data
-          this.formData = {
-            name: data.name,
-            password: null,
-            email: data.email
-          }
+      getInfo(params)
+      .then(res=>{
+        if(res.code==200){
+          Object.keys(this.formData)
+          .forEach(key=>{
+            this.formData[key] = res.info[key]
+          });
+          //密码解密
+          this.formData.password = decrypt(this.formData.password)
         }
       })
     },
     // 保存
-    onSave (formData) {
-      this.$refs[formData].validate((valid) => {
+    onSave () {
+      this.$refs.formData.validate((valid) => {
         if (valid) {
-          const url = userUpdateInfo
-          if (this.reqFlag.edit) {
-            this.reqFlag.edit = false
-            let params = {
-              id: this.id,
-              name: this.formData.name,
-              password: this.$md5(this.formData.password),
-              email: this.formData.email
-            }
-            this.$http(url, params)
-            .then(res => {
-              if (res.code == 1) {
-                this.$common.toast('修改成功', 'success', false)
+          const form = JSON.parse( JSON.stringify(this.formData) );
+            form.password = encrypt(form.password);
+            updateInfo(form)
+            .then(res=>{
+              if(res.code==200){
+                this.$message.success('修改成功');
                 this.$emit('editCallBack')
-                this.onCancel(formData)
+                this.onCancel()
               }
-              this.reqFlag.edit = true
             })
-          }
         } else {
           console.log('error submit!!')
           return false
@@ -131,9 +95,9 @@ export default {
       })
     },
     // 取消
-    onCancel (formName) {
+    onCancel () {
       this.changeShowFlag()
-      this.$refs[formName].resetFields()
+      this.$refs.formData.resetFields()
     },
     // 关闭弹出框
     closeDialog () {

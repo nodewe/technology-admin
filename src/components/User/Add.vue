@@ -1,14 +1,13 @@
 <template>
   <el-dialog title="新增管理员" :visible.sync="showFlag" custom-class="dialog-small" @close="closeDialog">
-    <el-form ref="formData" :model="formData" :rules="formRules" label-width="80px">
-      <el-form-item label="账号" prop="name">
-        <el-input v-model="formData.name" placeholder="请输入管理员账号"></el-input>
+    <el-form ref="formData"
+    @keydown.enter.native="onSave()"
+    :model="formData" :rules="formRules" label-width="80px">
+      <el-form-item label="账号" prop="username">
+        <el-input v-model="formData.username" placeholder="请输入管理员账号"></el-input>
       </el-form-item>
       <el-form-item label="密码" prop="password">
         <el-input v-model="formData.password" placeholder="请输入密码"></el-input>
-      </el-form-item>
-      <el-form-item label="邮箱" prop="email">
-        <el-input v-model="formData.email" placeholder="请输入管理员邮箱"></el-input>
       </el-form-item>
       <el-form-item class="dialog-footer" align="center">
         <el-button type="primary" @click="onSave('formData')">保 存</el-button>
@@ -19,92 +18,51 @@
 </template>
 
 <script>
-import { userAdd } from '../../config/interface'
+import { register } from '@/api/user.js'
+import { encrypt } from "@/utils/jsencrypt.js"
 export default {
-  data () {
-    const validate = (rule, value, callback) => {
-      const reg = /^[0-9a-zA-Z\u4e00-\u9fa5]*$/g
-      if (!value) {
-        callback(new Error('请输入账号'))
-      } else if (value.length < 3 || value.length > 6) {
-        callback(new Error('账号长度需在 3 到 6 个字符'))
-      } else if (!reg.test(value)) {
-        callback(new Error('账号需为字母或数字'))
-      } else {
-        callback()
-      }
-    }
-      const validate1 = (rule, value, callback) => {
-      const reg = /^[0-9a-zA-Z]*$/g
-      if (!value) {
-        callback(new Error('请输入密码'))
-      } else if (value.length < 3 || value.length > 6) {
-        callback(new Error('密码长度需在 3 到 6 个字符'))
-      } else if (!reg.test(value)) {
-        callback(new Error('密码需为字母或数字'))
-      } else {
-        callback()
-      }
-    }
+  data() {
     return {
       showFlag: false,
       formData: {
-        name: null,
-        password: null,
-        email: null
+        username: "",
+        password: "",
       },
       formRules: {
-        name: [
-          { validator: validate, trigger: 'blur' }
+        username: [
+          { required:true, trigger: 'blur' ,message:'请输入用户名'}
         ],
         password: [
-          { validator: validate1, trigger: 'blur' }
-        ],
-        email: [
-          { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
+          { required:true, trigger: 'blur' ,message:'请输入密码'}
         ]
-      },
-      reqFlag: {
-        add: true
       }
     }
   },
-  components: {
-  },
-  created () {
-  },
   methods: {
     // 初始化
-    init () {
+    init() {
       this.$nextTick(() => {
         this.changeShowFlag()
       })
     },
-    changeShowFlag () {
+    //打开关闭弹框
+    changeShowFlag() {
       this.showFlag = !this.showFlag
     },
     // 保存
-    onSave (formData) {
-      this.$refs[formData].validate((valid) => {
+    onSave() {
+      this.$refs.formData.validate((valid) => {
         if (valid) {
-          const url = userAdd
-          if (this.reqFlag.add) {
-            this.reqFlag.add = false
-            let params = {
-              name: this.formData.name,
-              password: this.$md5(this.formData.password),
-              email: this.formData.email
+          const form = JSON.parse(JSON.stringify(this.formData))
+          form.password = encrypt(form.password)
+          register(form).then(res => {
+            if (res.code == 200) {
+              this.$message.success('添加成功')
+              this.$emit('addCallBack')
+              this.onCancel()
             }
-            this.$http(url, params)
-            .then(res => {
-              if (res.code == 1) {
-                this.$common.toast('添加成功', 'success', false)
-                this.$emit('addCallBack')
-                this.onCancel(formData)
-              }
-              this.reqFlag.add = true
-            })
-          }
+          })
+
         } else {
           console.log('error submit!!')
           return false
@@ -112,12 +70,12 @@ export default {
       })
     },
     // 取消
-    onCancel (formName) {
+    onCancel(formName) {
       this.changeShowFlag()
-      this.$refs[formName].resetFields()
+      this.$refs.formData.resetFields()
     },
     // 关闭弹出框
-    closeDialog () {
+    closeDialog() {
       this.$refs['formData'].resetFields()
     }
   }
